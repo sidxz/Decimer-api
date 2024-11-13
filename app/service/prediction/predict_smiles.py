@@ -1,45 +1,42 @@
-from typing import List
 import numpy as np
 from DECIMER import predict_SMILES
 from PIL import Image
 import io
 from app.core.logging_config import logger
 
-def predict_smiles_from_segments(segments: List[np.ndarray]) -> List[str]:
+def predict_smiles_from_segment(segment: np.ndarray) -> str:
     """
-    Predict SMILES strings for a list of segmented chemical structures.
+    Predict a SMILES string from a single segmented chemical structure.
 
     Args:
-        segments (List[np.ndarray]): A list of segmented images (numpy arrays).
+        segment (np.ndarray): A segmented image (numpy array).
 
     Returns:
-        List[str]: A list of predicted SMILES strings.
+        str: The predicted SMILES string or None if prediction fails.
     """
-    smiles_array = []
+    if not isinstance(segment, np.ndarray):
+        logger.error("Input segment is not a numpy ndarray.")
+        raise ValueError("Input must be a numpy ndarray.")
     
-    logger.info(f"Starting SMILES prediction for {len(segments)} segments...")
-    
-    for i, segment in enumerate(segments):
-        try:
-            # Convert segment (numpy array) to a PIL image
-            segment_img = Image.fromarray(segment)
+    try:
+        # Convert the numpy array to a PIL Image
+        segment_img = Image.fromarray(segment)
 
-            # Save the segment image into an in-memory buffer
-            img_buffer = io.BytesIO()
+        # Save the image to an in-memory buffer in PNG format
+        with io.BytesIO() as img_buffer:
             segment_img.save(img_buffer, format='PNG')
-            img_buffer.seek(0)  # Rewind the buffer to the beginning
+            img_buffer.seek(0)  # Rewind to the start of the buffer
 
-            # Predict SMILES directly from the in-memory image buffer
+            # Predict SMILES using the DECIMER model
             smiles = predict_SMILES(img_buffer)
-            
-            if smiles:
-                smiles_array.append(smiles)
-                logger.info(f"Decoded SMILES for segment {i+1}: {smiles}")
-            else:
-                logger.warning(f"No SMILES decoded for segment {i+1}")
-        
-        except Exception as e:
-            logger.error(f"Error predicting SMILES for segment {i+1}: {str(e)}")
-    
-    logger.info(f"SMILES prediction completed. Total SMILES decoded: {len(smiles_array)}")
-    return smiles_array
+
+        if smiles:
+            logger.info(f"Decoded SMILES: {smiles}")
+            return smiles
+        else:
+            logger.warning("No SMILES decoded.")
+            return None
+
+    except Exception as e:
+        logger.error(f"Error during SMILES prediction: {str(e)}", exc_info=True)
+        return None
