@@ -3,16 +3,19 @@ from DECIMER import predict_SMILES
 from PIL import Image
 import io
 from app.core.logging_config import logger
+from typing import Tuple, Optional
 
-def predict_smiles_from_segment(segment: np.ndarray) -> str:
+from app.service.prediction.calculate_confidence import calculate_overall_confidence
+
+def predict_smiles_from_segment(segment: np.ndarray) -> Optional[Tuple[str, float]]:
     """
-    Predict a SMILES string from a single segmented chemical structure.
+    Predict a SMILES string and its confidence score from a single segmented chemical structure.
 
     Args:
         segment (np.ndarray): A segmented image (numpy array).
 
     Returns:
-        str: The predicted SMILES string or None if prediction fails.
+        Optional[Tuple[str, float]]: The predicted SMILES string and confidence score, or None if prediction fails.
     """
     if not isinstance(segment, np.ndarray):
         logger.error("Input segment is not a numpy ndarray.")
@@ -27,12 +30,16 @@ def predict_smiles_from_segment(segment: np.ndarray) -> str:
             segment_img.save(img_buffer, format='PNG')
             img_buffer.seek(0)  # Rewind to the start of the buffer
 
-            # Predict SMILES using the DECIMER model
-            smiles = predict_SMILES(img_buffer)
-
+            # Predict SMILES and confidence using the DECIMER model
+            actual_result = predict_SMILES(img_buffer, confidence=True)
+            
+            smiles = actual_result[0]
+            confidence = calculate_overall_confidence(actual_result)
+            
+            
         if smiles:
-            logger.info(f"Decoded SMILES: {smiles}")
-            return smiles
+            logger.info(f"Decoded SMILES: {smiles} with confidence: {confidence}")
+            return smiles, confidence
         else:
             logger.warning("No SMILES decoded.")
             return None

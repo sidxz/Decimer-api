@@ -66,10 +66,15 @@ def predict_smiles(file_location: str) -> Optional[List[PredictionResult]]:
     try:
         logger.info("[START] SMILES prediction")
         for result in segmented_images:
-            smiles = predict_smiles_from_segment(result.segmented_image)
-            if smiles:
+            smiles, confidence = predict_smiles_from_segment(result.segmented_image)
+            if smiles and confidence >= 0.5:
                 result.predicted_smiles = smiles
-                result.add_history("SMILES Prediction", "Success", f"Predicted SMILES: {smiles}")
+                result.confidence = confidence
+                result.add_history("SMILES Prediction", "Success", f"Predicted SMILES: {smiles} with confidence: {confidence}")
+            elif smiles and confidence < 0.5:
+                result.predicted_smiles = smiles
+                result.confidence = confidence
+                result.add_history("SMILES Prediction", "Failure", f"Low confidence: {confidence}")
             else:
                 result.add_history("SMILES Prediction", "Failure", "No SMILES predicted")
             results.append(result)
