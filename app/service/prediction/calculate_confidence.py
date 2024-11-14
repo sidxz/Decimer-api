@@ -22,10 +22,10 @@ def calculate_overall_confidence(smiles_with_confidence: Tuple[str, List[Tuple[s
     # Extract confidence values and calculate the mean
     confidence_values = [confidence for _, confidence in confidence_list]
     overall_confidence = calculate_geometric_mean_confidence(confidence_values)
-    print(f"Mean confidence: {calculate_mean_confidence(confidence_values)}")
-    print(f"Geometric mean confidence: {overall_confidence}")
-    print(f"Harmonic mean confidence: {calculate_harmonic_mean_confidence(confidence_values)}")
-    print(f"Minimum confidence: {calculate_minimum_confidence(confidence_values)}")
+    #print(f"Mean confidence: {calculate_mean_confidence(confidence_values)}")
+    #print(f"Geometric mean confidence: {overall_confidence}")
+    #print(f"Harmonic mean confidence: {calculate_harmonic_mean_confidence(confidence_values)}")
+    #print(f"Minimum confidence: {calculate_minimum_confidence(confidence_values)}")
     
     
     return overall_confidence

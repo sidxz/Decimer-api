@@ -7,6 +7,7 @@ from app.service.doc_loader.pdf_loader import pdf_to_images
 from app.service.segmentation.segment import segment_images
 from app.service.prediction.predict_smiles import predict_smiles_from_segment
 from app.core.celery_config import celery_app
+from app.utils.daikon_api import get_molecule_by_smiles
 
 
 @celery_app.task
@@ -41,7 +42,7 @@ def predict_smiles(file_location: str) -> Optional[List[PredictionResult]]:
         return None
     finally:
         logger.info("[END] Pre-processing document")
-    
+
     # 2. Segment the chemical structures from the images
     segmented_images = []
     try:
@@ -54,18 +55,20 @@ def predict_smiles(file_location: str) -> Optional[List[PredictionResult]]:
                         file_path=file_location,
                         page=page_number + 1,
                         segmented_image=segment,
-                        history=[]
+                        history=[],
                     )
-                    result.add_history("Segmentation", "Success", "Segmented image extracted")
+                    result.add_history(
+                        "Segmentation", "Success", "Segmented image extracted"
+                    )
                     segmented_images.append(result)
             else:
-                logger.warning(f"No segments found on page {page_number + 1}")
+                logger.info(f"No segments found on page {page_number + 1}")
     except Exception as e:
         logger.error(f"An error occurred during segmentation: {str(e)}")
         return None
     finally:
         logger.info("[END] Segmentation")
-    
+
     # 3. Predict SMILES strings from the segmented images
     try:
         logger.info("[START] SMILES prediction")
@@ -74,19 +77,49 @@ def predict_smiles(file_location: str) -> Optional[List[PredictionResult]]:
             if smiles and confidence >= 0.5:
                 result.predicted_smiles = smiles
                 result.confidence = confidence
-                result.add_history("SMILES Prediction", "Success", f"Predicted SMILES: {smiles} with confidence: {confidence}")
+                result.add_history(
+                    "SMILES Prediction",
+                    "Success",
+                    f"Predicted SMILES: {smiles} with confidence: {confidence}",
+                )
             elif smiles and confidence < 0.5:
                 result.predicted_smiles = smiles
                 result.confidence = confidence
-                result.add_history("SMILES Prediction", "Failure", f"Low confidence: {confidence}")
+                result.add_history(
+                    "SMILES Prediction", "Failure", f"Low confidence: {confidence}"
+                )
             else:
-                result.add_history("SMILES Prediction", "Failure", "No SMILES predicted")
+                result.add_history(
+                    "SMILES Prediction", "Failure", "No SMILES predicted"
+                )
             results.append(result)
     except Exception as e:
         logger.error(f"An error occurred during SMILES prediction: {str(e)}")
         return None
     finally:
         logger.info("[END] SMILES prediction")
+
+    # 4. Find if the SMILES string is present in the Daikon database
+    try:
+        logger.info("[START] Daikon Molecule DB search")
+        for result in results:
+            # Implement the Daikon API call here
+            daikon_response = get_molecule_by_smiles(result.predicted_smiles)
+            if daikon_response:
+                result.daikon_molecule_id = daikon_response[0]["id"]
+                result.daikon_molecule_name = daikon_response[0]["name"]
+                result.add_history(
+                    "Daikon Search",
+                    "Success",
+                    f"Found molecule {result.daikon_molecule_name} with ID: {result.daikon_molecule_id}",
+                )
+            else:
+                result.add_history(
+                    "Daikon Search", "Failure", "Molecule not found in Daikon DB"
+                )
+    except Exception as e:
+        logger.error(f"An error occurred during Daikon search: {str(e)}")
+        return None
 
     # Return all results with history
     for res in results:
