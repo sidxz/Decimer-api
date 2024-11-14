@@ -7,7 +7,7 @@ uploads/
 .env.development
 .env.test
 .env.production
-
+vols/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

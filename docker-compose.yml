@@ -3,6 +3,20 @@ version: '3.8'
 services:
   decimer-api-redis:
     image: redis:7.0-alpine
-    container_name: redis
+    container_name: decimer-api-redis
     ports:
       - "63790:6379"
+
+
+  decimer-db:
+    container_name: "decimer-db"
+    image: mongo:jammy
+    restart: always
+    cpus: '0.1'
+    ports:
+      - "27018:27017"
+    volumes:
+      - "./vols/decimer-db/db:/data/db"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}

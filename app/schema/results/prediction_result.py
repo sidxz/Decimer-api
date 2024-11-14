@@ -1,6 +1,6 @@
 from typing import List, Optional, Any
 import numpy as np
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import UUID4, BaseModel, ConfigDict, Field, field_validator
 from datetime import datetime
 import pytz
 import base64
@@ -15,7 +15,7 @@ class PipelineHistory(BaseModel):
 
 class PredictionResult(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    
+    document_id: UUID4
     file_path: str = Field(..., title="The path to the input file")
     page: int = Field(..., title="The page number of the document")
     segmented_image: Optional[np.ndarray] = Field(None, title="The segmented image as a numpy array")
@@ -24,6 +24,8 @@ class PredictionResult(BaseModel):
     daikon_molecule_id: Optional[str] = Field(None, title="The molecule identifier")
     daikon_molecule_name: Optional[str] = Field(None, title="The molecule name")
     history: List[PipelineHistory] = Field(default_factory=list)
+    run_date: Optional[datetime] = Field(default_factory=lambda: datetime.now(pytz.utc), title="The date and time of the run")
+    
     
     @property
     def confidence(self) -> Optional[float]:
@@ -44,6 +46,8 @@ class PredictionResult(BaseModel):
     def json_serializable(self) -> dict:
         """Convert the object to a JSON-serializable dictionary."""
         return {
+            "run_date": self.run_date.isoformat(),
+            "document_id": self.document_id,
             "file_path": self.file_path,
             "page": self.page,
             "segmented_image": self.image_to_base64() if self.segmented_image is not None else None,
