@@ -3,7 +3,8 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from datetime import datetime
 import pytz
-
+import base64
+import cv2
 
 class PipelineHistory(BaseModel):
     step: str
@@ -39,6 +40,26 @@ class PredictionResult(BaseModel):
                 raise ValueError("Confidence must be a valid float")
         else:
             self.confidence_f = value
+            
+    def json_serializable(self) -> dict:
+        """Convert the object to a JSON-serializable dictionary."""
+        return {
+            "file_path": self.file_path,
+            "page": self.page,
+            "segmented_image": self.image_to_base64() if self.segmented_image is not None else None,
+            "predicted_smiles": self.predicted_smiles,
+            "confidence": self.confidence,
+            "daikon_molecule_id": self.daikon_molecule_id,
+            "daikon_molecule_name": self.daikon_molecule_name,
+            "history": [entry.model_dump() for entry in self.history]
+        }
+
+    def image_to_base64(self) -> str:
+        """Convert np.ndarray image to Base64 string."""
+        if self.segmented_image is not None:
+            _, buffer = cv2.imencode('.png', self.segmented_image)
+            return base64.b64encode(buffer).decode('utf-8')
+        return ""
 
     def add_history(self, step: str, status: str, details: Optional[str] = None) -> None:
         """Add a new entry to the processing history."""

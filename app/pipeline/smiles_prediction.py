@@ -6,9 +6,13 @@ from app.service.doc_loader.utils import get_file_type
 from app.service.doc_loader.pdf_loader import pdf_to_images
 from app.service.segmentation.segment import segment_images
 from app.service.prediction.predict_smiles import predict_smiles_from_segment
+from app.core.celery_config import celery_app
 
+
+@celery_app.task
 def predict_smiles(file_location: str) -> Optional[List[PredictionResult]]:
     results = []
+    serialized_results = []
 
     # 1. Read the document and extract images
     try:
@@ -85,11 +89,13 @@ def predict_smiles(file_location: str) -> Optional[List[PredictionResult]]:
         logger.info("[END] SMILES prediction")
 
     # Return all results with history
-    return results
+    for res in results:
+        serialized_results.append(res.json_serializable())
+    return serialized_results
 
 
-# Example usage
-results = predict_smiles("./uploads/2.pdf")
-if results:
-    for result in results:
-        result.print_result()
+# #Example usage
+# results = predict_smiles("./uploads/2.pdf")
+# if results:
+#     for result in results:
+#         result.print_result()
