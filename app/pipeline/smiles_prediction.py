@@ -96,6 +96,9 @@ def predict_smiles(self, file_location: str):
                         "Success",
                         f"Found molecule {result.daikon_molecule_name} with ID: {result.daikon_molecule_id}",
                     )
+                    logger.info(
+                        f"Found molecule {result.daikon_molecule_name} with ID: {result.daikon_molecule_id}"
+                    )
                 else:
                     result.add_history(
                         "Daikon Search", "Failure", "Molecule not found in Daikon DB"
