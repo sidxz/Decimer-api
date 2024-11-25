@@ -1,9 +1,17 @@
 from app.core.celery_config import celery_app
 import uuid
+from app.core.mongo_config import get_sync_collection
+from app.hooks.registry import execute_hooks
 from app.schema.inputs.document import Document
 from app.schema.results.prediction_result import PredictionResult
-from app.repositories.document import save_document, save_document_sync
-from app.repositories.prediction_results import save_prediction_results, save_prediction_results_sync
+from app.repositories.document_sync import (
+    get_document_by_file_path_sync,
+    save_document_sync,
+)
+from app.repositories.prediction_results import (
+    get_latest_prediction_result_sync,
+    save_prediction_results_sync,
+)
 from app.service.doc_loader.pdf_loader import pdf_to_images
 from app.service.segmentation.segment import segment_images
 from app.service.prediction.predict_smiles import predict_smiles_from_segment
@@ -23,11 +31,40 @@ def predict_smiles(self, file_location: str):
         # Generate a document ID and metadata
         logger.info("[START] Generating document ID and metadata")
         document_id = uuid.uuid4()
+        run_id = 0
         document = Document(id=document_id, file_path=file_location)
         document.file_type = get_file_type(file_location)
         document.doc_hash = calculate_file_hash(file_location)
         logger.info("[END] Generating document ID and metadata")
 
+        # Check if the document already exists in the database and compare hashes
+        logger.info("[CHECK] Checking for existing document in the database")
+        existing_document = get_document_by_file_path_sync(file_location)
+        if existing_document:
+            run_id = existing_document.run_id + 1
+            document.id = existing_document.id
+            if existing_document.doc_hash == document.doc_hash:
+                logger.info(
+                    "Document already exists in the database with the same hash."
+                )
+
+                # Retrieve the latest prediction result using the repository function
+                latest_result = get_latest_prediction_result_sync(existing_document.id)
+                if latest_result:
+                    logger.info(
+                        "Returning the latest result for the existing document."
+                    )
+                    return latest_result.json_serializable()  # Serialize the result
+                else:
+                    logger.warning(
+                        "No prediction results found for the existing document."
+                    )
+                    return None  # No results available
+            else:
+                logger.warning(
+                    "Document exists but hash mismatch. Proceeding with new processing."
+                )
+        document.run_id = run_id
         # Step 1: Read the document and extract images
         logger.info("[START] Pre-processing document")
         if not os.path.isfile(file_location):
@@ -63,8 +100,7 @@ def predict_smiles(self, file_location: str):
                     )
                     segmented_images.append(result)
         logger.info("[END] Segmenting images")
-        
-        
+
         # Step 3: Predict SMILES strings
         logger.info("[START] Predicting SMILES strings")
         for result in segmented_images:
@@ -77,35 +113,16 @@ def predict_smiles(self, file_location: str):
                     "Success" if confidence >= 0.5 else "Low confidence",
                     f"Predicted SMILES: {smiles} with confidence {confidence}",
                 )
+            result.run_id = run_id
             results.append(result)
         logger.info("[END] Predicting SMILES strings")
         
-        # 4. Find if the SMILES string is present in the Daikon database
-        try:
-            logger.info("[START] Daikon Molecule DB search")
-            for result in results:
-                # Implement the Daikon API call here
-                daikon_response = get_molecule_by_smiles(result.predicted_smiles)
-                if daikon_response:
-                    result.daikon_molecule_id = daikon_response[0]["id"]
-                    result.daikon_molecule_name = daikon_response[0]["name"]
-                    document.daikon_molecule_ids.append(result.daikon_molecule_id)
-                    document.molecule_tags.append(result.daikon_molecule_name)
-                    result.add_history(
-                        "Daikon Search",
-                        "Success",
-                        f"Found molecule {result.daikon_molecule_name} with ID: {result.daikon_molecule_id}",
-                    )
-                    logger.info(
-                        f"Found molecule {result.daikon_molecule_name} with ID: {result.daikon_molecule_id}"
-                    )
-                else:
-                    result.add_history(
-                        "Daikon Search", "Failure", "Molecule not found in Daikon DB"
-                    )
-        except Exception as e:
-            logger.error(f"An error occurred during Daikon search: {str(e)}")
-            return None
+        # Step 4. TRY hooks Molecule Search
+        logger.info("[START] Executing Search hooks")
+        execute_hooks(
+            pipeline="smiles_pred_mol_search", document=document, results=results
+        )
+        logger.info("[END] Executing Search hooks")
 
         # Step 5: Save to MongoDB
         logger.info("[START] Saving results to MongoDB")

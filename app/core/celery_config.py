@@ -2,6 +2,8 @@ import os
 from celery import Celery
 from dotenv import load_dotenv
 import tensorflow as tf
+from app.core.logging_config import logger
+from app.hooks.registry import load_hooks_from_directory
 # Load environment variables from a .env file if present
 load_dotenv()
 
@@ -27,3 +29,8 @@ celery_app.conf.update(
 
 
 celery_app.autodiscover_tasks(['app.pipeline.smiles_prediction'])
+
+
+hooks_directory = os.path.join(os.path.dirname(__file__), "..", "hooks")
+logger.info("Loading hooks for Celery workers....")
+load_hooks_from_directory(hooks_directory)

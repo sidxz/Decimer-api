@@ -1,0 +1,33 @@
+# Base image with Miniconda
+FROM continuumio/miniconda3:latest
+
+# Set environment variables
+ENV ENV_NAME=Decimer-api
+ENV CONDA_DIR=/opt/conda/envs/$ENV_NAME
+ENV PATH=$CONDA_DIR/bin:$PATH
+
+# Set the working directory
+WORKDIR /app
+
+# Copy environment.yml for Conda environment setup
+COPY environment.yml /app/environment.yml
+
+# Install the Conda environment
+RUN conda env create -f environment.yml && \
+    conda clean -a && \
+    echo "source activate $ENV_NAME" > ~/.bashrc
+
+# Set up the Conda environment for use in Celery
+RUN echo "conda activate $ENV_NAME" >> ~/.bashrc
+
+# Install any additional dependencies
+RUN $CONDA_DIR/bin/pip install celery
+
+# Copy the project code
+COPY . /app
+
+# Set the worker's default port for debugging (if necessary)
+EXPOSE 5555
+
+# Command to run the Celery worker
+CMD ["celery", "-A", "app.core.celery_config.celery_app", "worker", "--loglevel=info", "--pool=solo"]

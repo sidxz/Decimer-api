@@ -9,6 +9,7 @@ class Document(BaseModel):
 
     # Unique identifier for the document, automatically generated
     id: UUID4 = Field(default_factory=uuid4, title="The unique identifier of the prediction result")
+    run_id: Optional[int] = Field(0, title="The unique identifier of the prediction run")
 
     # Required fields
     file_path: str = Field(..., title="The path to the input file")
@@ -42,6 +43,8 @@ class Document(BaseModel):
     def json_serializable(self) -> dict:
         """Convert the object to a JSON-serializable dictionary."""
         return {
+            "id": str(self.id),
+            "run_id": self.run_id,
             "file_path": self.file_path,
             "file_type": self.file_type,
             "ext_path": self.ext_path,

@@ -1,0 +1,26 @@
+name: Decimer-api
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - fastapi
+  - tqdm
+  - pypdf
+  - matplotlib
+  - numpy==1.23.5
+  - loguru
+  - pdf2image
+  - celery
+  - redis
+  - opencv
+  - motor
+  - aioredis
+  - gevent
+  - pytz
+  - h5py
+  - pip
+  - pip:
+      - decimer==2.7
+      - decimer-segmentation==1.4
+      - python-magic

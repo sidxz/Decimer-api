@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   decimer-api-redis:
@@ -7,12 +7,11 @@ services:
     ports:
       - "63790:6379"
 
-
   decimer-db:
     container_name: "decimer-db"
     image: mongo:jammy
     restart: always
-    cpus: '0.1'
+    cpus: "0.1"
     ports:
       - "27018:27017"
     volumes:
@@ -20,3 +19,36 @@ services:
     environment:
       - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+
+  # decimer-api:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: decimer-api
+  #   restart: always
+  #   ports:
+  #     - "8500:8500"
+  #   environment:
+  #     - UPLOAD_DIRECTORY=${UPLOAD_DIRECTORY}
+  #     - REDIS_BROKER_URL=${REDIS_BROKER_URL}
+  #     - REDIS_BACKEND_URL=${REDIS_BACKEND_URL}
+  #     - DAIKON_MLX_URL=${DAIKON_MLX_URL}
+  #     - MONGO_URI=${MONGO_URI}
+  #   # depends_on:
+  #   #   - decimer-api-redis
+  #   #   - decimer-db
+
+  # decimer-worker:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile-celery
+  #   container_name: decimer-worker
+  #   restart: always
+  #   environment:
+  #     - REDIS_BROKER_URL=${REDIS_BROKER_URL}
+  #     - REDIS_BACKEND_URL=${REDIS_BACKEND_URL}
+  #     - DAIKON_MLX_URL=${DAIKON_MLX_URL}
+  #     - MONGO_URI=${MONGO_URI}
+  #   depends_on:
+  #     - decimer-api-redis
+  #     - decimer-db

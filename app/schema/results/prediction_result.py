@@ -16,6 +16,7 @@ class PipelineHistory(BaseModel):
 class PredictionResult(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     document_id: UUID4
+    run_id: Optional[int] = Field(0, title="The unique identifier of the prediction run")
     file_path: str = Field(..., title="The path to the input file")
     page: int = Field(..., title="The page number of the document")
     segmented_image: Optional[np.ndarray] = Field(None, title="The segmented image as a numpy array")
@@ -48,6 +49,7 @@ class PredictionResult(BaseModel):
         return {
             "run_date": self.run_date.isoformat(),
             "document_id": self.document_id,
+            "run_id": self.run_id,
             "file_path": self.file_path,
             "page": self.page,
             "segmented_image": self.image_to_base64() if self.segmented_image is not None else None,
@@ -80,6 +82,7 @@ class PredictionResult(BaseModel):
     def print_result(self) -> None:
         """Print the prediction result in a readable format."""
         print("=" * 20)
+        print(f"Run ID: {self.run_id}")
         print(f"File path: {self.file_path}")
         print(f"Page: {self.page}")
         print(f"Predicted SMILES: {self.predicted_smiles or 'N/A'}")
