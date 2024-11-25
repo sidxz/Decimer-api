@@ -33,6 +33,7 @@ services:
   #     - REDIS_BROKER_URL=${REDIS_BROKER_URL}
   #     - REDIS_BACKEND_URL=${REDIS_BACKEND_URL}
   #     - DAIKON_MLX_URL=${DAIKON_MLX_URL}
+  #     - DAIKON_DOC_URL=${DAIKON_DOC_URL}
   #     - MONGO_URI=${MONGO_URI}
   #   # depends_on:
   #   #   - decimer-api-redis
@@ -48,6 +49,7 @@ services:
   #     - REDIS_BROKER_URL=${REDIS_BROKER_URL}
   #     - REDIS_BACKEND_URL=${REDIS_BACKEND_URL}
   #     - DAIKON_MLX_URL=${DAIKON_MLX_URL}
+  #     - DAIKON_DOC_URL=${DAIKON_DOC_URL}
   #     - MONGO_URI=${MONGO_URI}
   #   depends_on:
   #     - decimer-api-redis

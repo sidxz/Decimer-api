@@ -38,7 +38,7 @@ class Document(BaseModel):
     tags: List[str] = Field(default_factory=list, title="Tags associated with the document")
     molecule_tags: List[str] = Field(default_factory=list, title="Molecule tags associated with the document")
     daikon_molecule_ids: List[str] = Field(default_factory=list, title="Daikon molecule IDs associated with the document")
-
+    predicted_smiles_list: List[str] = Field(default_factory=list, title="List of predicted SMILES strings")
     
     def json_serializable(self) -> dict:
         """Convert the object to a JSON-serializable dictionary."""
@@ -61,4 +61,5 @@ class Document(BaseModel):
             "tags": self.tags,
             "molecule_tags": self.molecule_tags,
             "daikon_molecule_ids": self.daikon_molecule_ids,
+            "predicted_smiles_list": self.predicted_smiles_list
         }

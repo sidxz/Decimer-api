@@ -113,6 +113,11 @@ def predict_smiles(self, file_location: str):
                     "Success" if confidence >= 0.5 else "Low confidence",
                     f"Predicted SMILES: {smiles} with confidence {confidence}",
                 )
+                document.predicted_smiles_list.append(smiles)
+            else:
+                result.add_history(
+                    "SMILES Prediction", "Failed", "Failed to predict SMILES string"
+                )
             result.run_id = run_id
             results.append(result)
         logger.info("[END] Predicting SMILES strings")
@@ -132,6 +137,12 @@ def predict_smiles(self, file_location: str):
         except Exception as e:
             logger.error(f"An error occurred: {e}")
         logger.info("[END] Saving results to MongoDB")
+        
+        # Step 6: Run Post hooks
+        logger.info("[START] Executing Post hooks")
+        execute_hooks(
+            pipeline="smiles_pred_res_post", document=document, results=results
+        )
 
         # Step 6: Serialize results
         for res in results:
