@@ -56,33 +56,67 @@ async def save_prediction_results(results: List[PredictionResult]):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error saving prediction results: {str(e)}",
-        )    
-    
-def get_latest_prediction_result_sync(document_id: str) -> Optional[PredictionResult]:
+        )
+
+
+from pymongo import DESCENDING
+from fastapi import HTTPException, status
+
+
+def get_latest_prediction_results_sync(
+    document_id: str, max_run_id: int = -1
+) -> List[PredictionResult]:
     """
-    Retrieve the latest prediction result for a given document ID.
+    Retrieve all prediction results with the highest run_id for a given document ID.
 
     :param document_id: The UUID of the document to retrieve results for.
-    :return: The latest PredictionResult, or None if no results are found.
+    :param max_run_id: The maximum run_id to filter by. If -1, it will be calculated.
+    :return: A list of PredictionResult objects with the highest run_id, or an empty list if no results are found.
     """
-    logger.info(f"[FETCH] Retrieving the latest prediction result for document ID: {document_id}")
+    logger.info(
+        f"[FETCH] Retrieving the latest prediction results for document ID: {document_id}"
+    )
     try:
         collection = get_sync_collection("prediction_results")
-        latest_result = collection.find_one(
-            {"document_id": document_id},
-            sort=[("run_date", -1)]  # Sort by run_date descending
-        )
-        if latest_result:
-            # Deserialize the segmented_image field if it exists
-            if "segmented_image" in latest_result and latest_result["segmented_image"]:
-                latest_result["segmented_image"] = decode_image_from_base64(latest_result["segmented_image"])
-            return PredictionResult(**latest_result)  # Convert to Pydantic model
+
+        # Find the maximum run_id for the document_id if not provided
+        if max_run_id == -1:
+            logger.info("Max run_id not provided. Calculating the maximum run_id...")
+            max_run_id_doc = collection.find_one(
+                {"document_id": document_id},
+                sort=[("run_id", DESCENDING)],  # Sort by run_id descending
+                projection={"run_id": 1},  # Only fetch the run_id field
+            )
+
+            if not max_run_id_doc:
+                logger.warning(
+                    f"No prediction results found for document ID: {document_id}"
+                )
+                return []
+
+            max_run_id = max_run_id_doc["run_id"]
+            logger.info(f"Calculated max run_id: {max_run_id}")
         else:
-            logger.warning(f"No prediction results found for document ID: {document_id}")
-            return None
+            logger.info(f"Using provided max run_id: {max_run_id}")
+
+        # Fetch all documents with the highest run_id
+        results = collection.find({"document_id": document_id, "run_id": max_run_id})
+
+        prediction_results = []
+        for result in results:
+            # Deserialize the segmented_image field if it exists
+            if "segmented_image" in result and result["segmented_image"]:
+                result["segmented_image"] = decode_image_from_base64(
+                    result["segmented_image"]
+                )
+            # Convert the result to a PredictionResult object
+            prediction_results.append(PredictionResult(**result))
+
+        return prediction_results
+
     except PyMongoError as e:
-        logger.error(f"Error retrieving the latest prediction result: {str(e)}")
+        logger.error(f"Error retrieving the latest prediction results: {str(e)}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to fetch the latest prediction result.",
+            detail="Failed to fetch the latest prediction results.",
         )

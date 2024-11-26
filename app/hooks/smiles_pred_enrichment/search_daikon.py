@@ -8,6 +8,8 @@ def search_daikon(document, results):
     try:
         logger.info("[START HOOK] Daikon Molecule DB search")
         for result in results:
+            logger.info(f"RESULT = {result}")
+            result.print_result()
             # Implement the Daikon API call here
             daikon_response = get_molecule_by_smiles(result.predicted_smiles)
             if daikon_response:

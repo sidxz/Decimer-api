@@ -9,7 +9,7 @@ from app.repositories.document_sync import (
     save_document_sync,
 )
 from app.repositories.prediction_results import (
-    get_latest_prediction_result_sync,
+    get_latest_prediction_results_sync,
     save_prediction_results_sync,
 )
 from app.service.doc_loader.pdf_loader import pdf_to_images
@@ -49,12 +49,47 @@ def predict_smiles(self, file_location: str):
                 )
 
                 # Retrieve the latest prediction result using the repository function
-                latest_result = get_latest_prediction_result_sync(existing_document.id)
+                latest_result = get_latest_prediction_results_sync(
+                    document_id=existing_document.id,
+                    max_run_id=existing_document.run_id,
+                )
                 if latest_result:
+
+                    # Run enrichment and post hooks
+
+                    logger.info("[START] Looking for Data Enrichment hooks")
+                    # Get hook name from environment variable
+                    hook_pipeline_en = os.getenv("SMILES_PRED_ENRICH")
+                    if hook_pipeline_en is not None:
+                        logger.info(
+                            f"[START] Found {hook_pipeline_en}: Executing Data Enrichment hooks"
+                        )
+                        execute_hooks(
+                            pipeline=hook_pipeline_en,
+                            document=document,
+                            results=latest_result,
+                        )
+                    logger.info("[END] Data Enrichment hooks")
+
+                    logger.info("[START] Looking for POST hooks")
+                    hook_pipeline_post = os.getenv("SMILES_PRED_POST")
+                    if hook_pipeline_post is not None:
+                        logger.info(
+                            f"[START] Found {hook_pipeline_post}: Executing Post hooks"
+                        )
+                        execute_hooks(
+                            pipeline=hook_pipeline_post,
+                            document=document,
+                            results=latest_result,
+                        )
+                    logger.info("[END] Post hooks")
+
                     logger.info(
                         "Returning the latest result for the existing document."
                     )
-                    return latest_result.json_serializable()  # Serialize the result
+                    for res in latest_result:
+                        serialized_results.append(res.json_serializable())
+                    return serialized_results
                 else:
                     logger.warning(
                         "No prediction results found for the existing document."
@@ -64,6 +99,7 @@ def predict_smiles(self, file_location: str):
                 logger.warning(
                     "Document exists but hash mismatch. Proceeding with new processing."
                 )
+
         document.run_id = run_id
         # Step 1: Read the document and extract images
         logger.info("[START] Pre-processing document")
@@ -121,13 +157,17 @@ def predict_smiles(self, file_location: str):
             result.run_id = run_id
             results.append(result)
         logger.info("[END] Predicting SMILES strings")
-        
-        # Step 4. TRY hooks Molecule Search
-        logger.info("[START] Executing Search hooks")
-        execute_hooks(
-            pipeline="smiles_pred_mol_search", document=document, results=results
-        )
-        logger.info("[END] Executing Search hooks")
+
+        # Step 4. TRY enrichment hooks
+        logger.info("[START] Looking for Data Enrichment hooks")
+        # Get hook name from environment variable
+        hook_pipeline_en = os.getenv("SMILES_PRED_ENRICH")
+        if hook_pipeline_en is not None:
+            logger.info(
+                f"[START] Found {hook_pipeline_en}: Executing Data Enrichment hooks"
+            )
+            execute_hooks(pipeline=hook_pipeline_en, document=document, results=results)
+        logger.info("[END] Data Enrichment hooks")
 
         # Step 5: Save to MongoDB
         logger.info("[START] Saving results to MongoDB")
@@ -137,12 +177,16 @@ def predict_smiles(self, file_location: str):
         except Exception as e:
             logger.error(f"An error occurred: {e}")
         logger.info("[END] Saving results to MongoDB")
-        
+
         # Step 6: Run Post hooks
-        logger.info("[START] Executing Post hooks")
-        execute_hooks(
-            pipeline="smiles_pred_res_post", document=document, results=results
-        )
+        logger.info("[START] Looking for POST hooks")
+        hook_pipeline_post = os.getenv("SMILES_PRED_POST")
+        if hook_pipeline_post is not None:
+            logger.info(f"[START] Found {hook_pipeline_post}: Executing Post hooks")
+            execute_hooks(
+                pipeline=hook_pipeline_post, document=document, results=results
+            )
+        logger.info("[END] Post hooks")
 
         # Step 6: Serialize results
         for res in results:
