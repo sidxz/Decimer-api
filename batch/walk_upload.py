@@ -59,12 +59,39 @@ def generate_origin_ext_path(file_path: str) -> str:
         raise
 
 
+def generate_dir_path(file_path: str) -> str:
+    """
+    Generate the SharePoint-compatible URL for a given file path.
+
+    Args:
+        file_path (str): Full path to the file.
+
+    Returns:
+        str: SharePoint-compatible URL path.
+    """
+    try:
+        # Calculate relative path and replace file extension
+        relative_path = os.path.relpath(file_path, BU_BASE_DIRECTORY)
+        dir_path = os.path.dirname(relative_path)
+
+        # Encode the path to make it URL-safe
+        encoded_dir_path = quote(dir_path)
+        return encoded_dir_path
+    except Exception as e:
+        logging.error(f"Error generating encoded_dir_path for {file_path}: {str(e)}")
+        raise
+
+
 def upload_file(file_path: str):
     """Upload a file to the FastAPI endpoint."""
     origin_ext_path = generate_origin_ext_path(file_path)
+    origin_dir_path = generate_dir_path(file_path)
     try:
         # Construct the query parameter
-        params = {"origin_ext_path": origin_ext_path}
+        params = {
+            "origin_ext_path": origin_ext_path,
+            "origin_dir_path": origin_dir_path,
+        }
         query_string = urlencode(params)
         full_url = f"{BU_UPLOAD_URL}?{query_string}"
 
@@ -79,7 +106,7 @@ def upload_file(file_path: str):
             }
 
             # Log the upload attempt
-            logging.info(f"Uploading {file_path} to {full_url}")
+            logging.info(f"Uploading {file_path} \n {origin_ext_path}")
 
             # Make the POST request
             response = requests.post(full_url, files=files)
@@ -95,7 +122,6 @@ def upload_file(file_path: str):
             logging.error(f"Response content: {e.response.text}")
     except Exception as e:
         logging.error(f"Unexpected error: {e}")
-        
 
 
 def find_and_upload_files(directory: str):
@@ -111,7 +137,7 @@ def find_and_upload_files(directory: str):
                 if file_name.lower().endswith(".pdf"):
                     file_path = os.path.join(root, file_name)
                     upload_file(file_path)
-                    exit(1)
+                    
     except Exception as e:
         logging.error(f"Error while processing directory {directory}: {str(e)}")
         raise
