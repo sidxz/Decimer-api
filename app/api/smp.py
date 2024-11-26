@@ -4,12 +4,13 @@ from celery.result import AsyncResult
 from app.pipeline.smiles_prediction import predict_smiles
 import shutil
 import os
-
+from app.core.logging_config import logger
 router = APIRouter()
 
 
 @router.post("/upload")
-async def upload_document(file: UploadFile):
+async def upload_document(file: UploadFile, origin_ext_path: str):
+    logger.info(f"Uploading file: {file.filename} {origin_ext_path}")
     upload_directory = os.getenv("UPLOAD_DIRECTORY")
     if not upload_directory:
         raise HTTPException(
@@ -17,14 +18,16 @@ async def upload_document(file: UploadFile):
         )
     file_location = os.path.join(upload_directory, file.filename)
     try:
-      with open(file_location, "wb") as buffer:
-          shutil.copyfileobj(file.file, buffer)
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
     except Exception as e:
         # Handle file save errors gracefully
         raise HTTPException(status_code=500, detail=f"Error saving file: {str(e)}")
-      
+
     # Start the background task
-    task = predict_smiles.delay(file_location)
+    task = predict_smiles.delay(
+        file_location=file_location, origin_ext_path=origin_ext_path
+    )
     return {"task_id": task.id, "message": "Document processing started."}
 
 

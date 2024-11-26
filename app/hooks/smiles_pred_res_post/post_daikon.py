@@ -31,9 +31,10 @@ def post_to_daikon(document, results):
                     -1
                 ],  # Extract the filename from the path
                 "filePath": document.file_path,
-                "fileType": document.file_type,  # Assuming this refers to the document's content type
-                "docHash": document.doc_hash,  # Unique identifier for the document
-                "extractedSMILES": document.predicted_smiles_list,  # Extracted chemical data
+                "externalPath" : document.ext_path,
+                "fileType": document.file_type,  
+                "docHash": document.doc_hash,  
+                "extractedSMILES": document.predicted_smiles_list,  
             }
             add_or_update_document(new_document)
             logger.info("New document successfully created in Daikon.")
@@ -42,6 +43,8 @@ def post_to_daikon(document, results):
             logger.info("Document exists in Daikon. Updating document entry.")
             existing_document["extractedSMILES"] = document.predicted_smiles_list
             existing_document["docHash"] = document.doc_hash
+            existing_document["fileType"] = document.file_type
+            existing_document["externalPath"] = document.ext_path
             add_or_update_document(existing_document)
             logger.info("Existing document successfully updated in Daikon.")
 

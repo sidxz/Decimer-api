@@ -23,7 +23,8 @@ import os
 
 
 @celery_app.task(bind=True)
-def predict_smiles(self, file_location: str):
+def predict_smiles(self, file_location: str, origin_ext_path: str):
+    logger.info(f"Processing file: {file_location} {origin_ext_path}")
     try:
         results = []
         serialized_results = []
@@ -32,7 +33,9 @@ def predict_smiles(self, file_location: str):
         logger.info("[START] Generating document ID and metadata")
         document_id = uuid.uuid4()
         run_id = 0
-        document = Document(id=document_id, file_path=file_location)
+        document = Document(
+            id=document_id, file_path=file_location, ext_path=origin_ext_path
+        )
         document.file_type = get_file_type(file_location)
         document.doc_hash = calculate_file_hash(file_location)
         logger.info("[END] Generating document ID and metadata")
@@ -43,6 +46,8 @@ def predict_smiles(self, file_location: str):
         if existing_document:
             run_id = existing_document.run_id + 1
             document.id = existing_document.id
+            document.ext_path = origin_ext_path
+            existing_document.ext_path = origin_ext_path
             if existing_document.doc_hash == document.doc_hash:
                 logger.info(
                     "Document already exists in the database with the same hash."
@@ -56,7 +61,6 @@ def predict_smiles(self, file_location: str):
                 if latest_result:
 
                     # Run enrichment and post hooks
-
                     logger.info("[START] Looking for Data Enrichment hooks")
                     # Get hook name from environment variable
                     hook_pipeline_en = os.getenv("SMILES_PRED_ENRICH")
@@ -66,7 +70,7 @@ def predict_smiles(self, file_location: str):
                         )
                         execute_hooks(
                             pipeline=hook_pipeline_en,
-                            document=document,
+                            document=existing_document,
                             results=latest_result,
                         )
                     logger.info("[END] Data Enrichment hooks")
@@ -79,7 +83,7 @@ def predict_smiles(self, file_location: str):
                         )
                         execute_hooks(
                             pipeline=hook_pipeline_post,
-                            document=document,
+                            document=existing_document,
                             results=latest_result,
                         )
                     logger.info("[END] Post hooks")
