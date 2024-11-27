@@ -34,7 +34,9 @@ def post_to_daikon(document, results):
                 "externalPath" : document.ext_path,
                 "fileType": document.file_type,  
                 "docHash": document.doc_hash,  
-                "extractedSMILES": document.predicted_smiles_list,  
+                "extractedSMILES": document.predicted_smiles_list,
+                "tags": document.tags,
+                  
             }
             add_or_update_document(new_document)
             logger.info("New document successfully created in Daikon.")
@@ -45,6 +47,12 @@ def post_to_daikon(document, results):
             existing_document["docHash"] = document.doc_hash
             existing_document["fileType"] = document.file_type
             existing_document["externalPath"] = document.ext_path
+            if "tags" not in existing_document or existing_document["tags"] is None:
+                existing_document["tags"] = []
+            if document.tags:
+                existing_document["tags"] = list(
+                    set(existing_document["tags"] + document.tags)
+                )
             add_or_update_document(existing_document)
             logger.info("Existing document successfully updated in Daikon.")
 
