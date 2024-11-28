@@ -132,10 +132,14 @@ def find_and_upload_files(directory: str):
         directory (str): Base directory to search for PDF files.
     """
     try:
+        count = 0
         for root, _, files in os.walk(directory):
             for file_name in files:
                 if file_name.lower().endswith(".pdf"):
                     file_path = os.path.join(root, file_name)
+                    #count += 1
+                    if count == 10:
+                        exit(0)
                     upload_file(file_path)
                     
     except Exception as e:

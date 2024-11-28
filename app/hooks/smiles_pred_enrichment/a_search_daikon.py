@@ -1,15 +1,15 @@
 from app.core.logging_config import logger
 from app.utils.daikon_api import get_molecule_by_smiles
 
-def search_daikon(document, results):
+def a_search_daikon(document, results):
     """
     Example hook for processing data in Pipeline 1.
     """
     try:
         logger.info("[START HOOK] Daikon Molecule DB search")
         for result in results:
-            logger.info(f"RESULT = {result}")
-            result.print_result()
+            #logger.info(f"RESULT = {result}")
+            #result.print_result()
             # Implement the Daikon API call here
             daikon_response = get_molecule_by_smiles(result.predicted_smiles)
             if daikon_response:
@@ -17,6 +17,7 @@ def search_daikon(document, results):
                 result.daikon_molecule_name = daikon_response[0]["name"]
                 document.daikon_molecule_ids.append(result.daikon_molecule_id)
                 document.molecule_tags.append(result.daikon_molecule_name)
+                document.tags.append(result.daikon_molecule_name)
                 result.add_history(
                     "Daikon Search",
                     "Success",
@@ -36,4 +37,4 @@ def search_daikon(document, results):
         logger.info("[END HOOK] Daikon Molecule DB search end.")
         
 
-hooks = [search_daikon]
+hooks = [a_search_daikon]

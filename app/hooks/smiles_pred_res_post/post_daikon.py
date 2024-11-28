@@ -39,7 +39,7 @@ def post_to_daikon(document, results):
                   
             }
             add_or_update_document(new_document)
-            logger.info("New document successfully created in Daikon.")
+            logger.info(f"New document successfully created in Daikon.")
         else:
             # Document exists; update it with new information
             logger.info("Document exists in Daikon. Updating document entry.")
@@ -54,7 +54,7 @@ def post_to_daikon(document, results):
                     set(existing_document["tags"] + document.tags)
                 )
             add_or_update_document(existing_document)
-            logger.info("Existing document successfully updated in Daikon.")
+            logger.info(f"Existing document successfully updated in Daikon.")
 
         return True
 

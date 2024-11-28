@@ -16,6 +16,8 @@ def register_hook(pipeline: str, hook: Callable):
     if pipeline not in pipeline_hooks:
         pipeline_hooks[pipeline] = []
     pipeline_hooks[pipeline].append(hook)
+    # Sort hooks alphabetically by their names
+    pipeline_hooks[pipeline].sort(key=lambda h: h.__name__)
     logger.info(f"Hook registered for pipeline '{pipeline}': {hook.__name__}")
 
 
