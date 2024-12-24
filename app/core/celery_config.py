@@ -9,6 +9,11 @@ load_dotenv()
 
 broker = os.getenv("REDIS_BROKER_URL", "redis://localhost:6379/0")
 backend = os.getenv("REDIS_BACKEND_URL", "redis://localhost:6379/0")
+
+# print the broker and backend
+logger.info(f"Broker: {broker}")
+logger.info(f"Backend: {backend}")
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Suppress TensorFlow logs
 os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 tf.config.set_soft_device_placement(True)
