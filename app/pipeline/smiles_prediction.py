@@ -163,15 +163,15 @@ def predict_smiles(self, file_location: str, origin_ext_path: str):
         logger.info("[END] Predicting SMILES strings")
 
         # Step 4. TRY enrichment hooks
-        logger.info("[START] Looking for Data Enrichment hooks")
+        # logger.info("[START] Looking for Data Enrichment hooks")
         # Get hook name from environment variable
-        hook_pipeline_en = os.getenv("SMILES_PRED_ENRICH")
-        if hook_pipeline_en is not None:
-            logger.info(
-                f"[START] Found {hook_pipeline_en}: Executing Data Enrichment hooks"
-            )
-            execute_hooks(pipeline=hook_pipeline_en, document=document, results=results)
-        logger.info("[END] Data Enrichment hooks")
+        # hook_pipeline_en = os.getenv("SMILES_PRED_ENRICH")
+        # if hook_pipeline_en is not None:
+        #     logger.info(
+        #         f"[START] Found {hook_pipeline_en}: Executing Data Enrichment hooks"
+        #     )
+        #     execute_hooks(pipeline=hook_pipeline_en, document=document, results=results)
+        # logger.info("[END] Data Enrichment hooks")
 
         # Step 5: Save to MongoDB
         logger.info("[START] Saving results to MongoDB")
@@ -182,15 +182,15 @@ def predict_smiles(self, file_location: str, origin_ext_path: str):
             logger.error(f"An error occurred: {e}")
         logger.info("[END] Saving results to MongoDB")
 
-        # Step 6: Run Post hooks
-        logger.info("[START] Looking for POST hooks")
-        hook_pipeline_post = os.getenv("SMILES_PRED_POST")
-        if hook_pipeline_post is not None:
-            logger.info(f"[START] Found {hook_pipeline_post}: Executing Post hooks")
-            execute_hooks(
-                pipeline=hook_pipeline_post, document=document, results=results
-            )
-        logger.info("[END] Post hooks")
+        # # Step 6: Run Post hooks
+        # logger.info("[START] Looking for POST hooks")
+        # hook_pipeline_post = os.getenv("SMILES_PRED_POST")
+        # if hook_pipeline_post is not None:
+        #     logger.info(f"[START] Found {hook_pipeline_post}: Executing Post hooks")
+        #     execute_hooks(
+        #         pipeline=hook_pipeline_post, document=document, results=results
+        #     )
+        # logger.info("[END] Post hooks")
 
         # Step 6: Serialize results
         for res in results:
