@@ -48,7 +48,8 @@ def predict_smiles(self, file_location: str, origin_ext_path: str):
             document.id = existing_document.id
             document.ext_path = origin_ext_path
             existing_document.ext_path = origin_ext_path
-            if existing_document.doc_hash == document.doc_hash:
+            # if existing_document.doc_hash == document.doc_hash:
+            if True:
                 logger.info(
                     "Document already exists in the database with the same hash."
                 )
