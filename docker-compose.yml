@@ -11,7 +11,6 @@ services:
     container_name: "decimer-db"
     image: mongo:jammy
     restart: always
-    cpus: "0.1"
     ports:
       - "27018:27017"
     volumes:
